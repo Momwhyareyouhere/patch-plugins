@@ -22,13 +22,5 @@
     "description": "Counts files and lines in the current project and shows a summary in a sidebar panel",
     "author": "Patch Team",
     "repo": "momwhyareyouhere/patch-plugins/main"
-  },
-  {
-    "id": "theme-switcher",
-    "name": "Theme Switcher",
-    "version": "1.0.0",
-    "description": "Quickly toggle between dark and light themes with a keyboard shortcut",
-    "author": "Patch Team",
-    "repo": "momwhyareyouhere/patch-plugins/main"
   }
 ]
