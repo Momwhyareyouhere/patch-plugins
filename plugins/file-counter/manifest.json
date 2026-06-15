@@ -1,0 +1,5 @@
+{
+  "name": "File Counter",
+  "version": "1.0.0",
+  "description": "Counts files and lines in the current project and shows a summary in a sidebar panel"
+}
