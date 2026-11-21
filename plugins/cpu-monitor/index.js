@@ -1,33 +1,42 @@
-var interval = null;
-var cpuData = { usage: '--', cores: [] };
+var cpuData = { usage: '--', cores: [], error: '' };
 
 function parseCpuUsage(text) {
-  var lines = text.trim().split('\n');
-  var result = { usage: '--', cores: [] };
+  var lines = String(text).trim().split('\n');
+  var result = { usage: '--', cores: [], error: '' };
   for (var i = 0; i < lines.length; i++) {
     var parts = lines[i].trim().split(/\s+/);
-    if (parts[0] === 'cpu') {
-      var idle = parseInt(parts[4]);
-      var total = 0;
-      for (var j = 1; j < parts.length; j++) total += parseInt(parts[j]);
-      result.usage = total ? ((1 - idle / total) * 100).toFixed(1) : '--';
-    } else if (parts[0] && parts[0].startsWith('cpu')) {
-      var idle2 = parseInt(parts[4]);
-      var total2 = 0;
-      for (var j = 1; j < parts.length; j++) total2 += parseInt(parts[j]);
-      result.cores.push(total2 ? ((1 - idle2 / total2) * 100).toFixed(1) : '--');
-    }
+    if (!parts[0] || parts[0].indexOf('cpu') !== 0) continue;
+
+    var idle = parseInt(parts[4], 10);
+    var total = 0;
+    for (var j = 1; j < parts.length; j++) total += parseInt(parts[j], 10) || 0;
+
+    var percent = total > 0 ? ((1 - idle / total) * 100).toFixed(1) : '--';
+    if (parts[0] === 'cpu') result.usage = percent;
+    else result.cores.push(percent);
   }
   return result;
 }
 
+function repaint() {
+  if (patch.ui && typeof patch.ui.refresh === 'function') patch.ui.refresh();
+}
+
 function refresh() {
-  patch.exec("cat /proc/stat").then(function(out) {
-    cpuData = parseCpuUsage(out);
+  return patch.fs.readFile('/proc/stat').then(function(text) {
+    cpuData = parseCpuUsage(text);
+    repaint();
+  }).catch(function() {
+    cpuData = { usage: '--', cores: [], error: 'CPU stats are only available on Linux.' };
+    repaint();
   });
 }
 
 function renderView() {
+  if (cpuData.error) {
+    return '<div style="padding:12px;color:#8b949e;font-size:12px">' + cpuData.error + '</div>';
+  }
+
   var bars = cpuData.cores.map(function(pct, i) {
     var w = Math.min(parseFloat(pct) || 0, 100);
     return '<div style="display:flex;align-items:center;gap:6px;margin:3px 0">' +
@@ -61,5 +70,6 @@ patch.ui.registerSidebarView('cpu-monitor', 'CPU Monitor', cpuIcon, function() {
   return renderView();
 });
 
+if (window.__patchCpuMonitorTimer) clearInterval(window.__patchCpuMonitorTimer);
+window.__patchCpuMonitorTimer = setInterval(refresh, 2000);
 refresh();
-interval = setInterval(refresh, 2000);
